@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>GaWC Map</title>
+        <link rel = "stylesheet" href = "https://unpkg.com/leaflet@1.7.1/dist/leaflet.css">
+    </head>
+
+    <body>
+        <div id="map" style="width: 1100px; height: 600px"></div>
+
+        <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+        <script src="BetaMinusCities.geojson"></script>
+      
+        <script>
+            var map = L.map('map').setView([0,0], 2);
+
+            L.tileLayer('https://api.mapbox.com/styles/v1/{id}/tiles/{z}/{x}/{y}?access_token={accessToken}', {
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+      id: 'mapbox/dark-v11',
+      accessToken: 'pk.eyJ1IjoidHVxMTI1NDciLCJhIjoiY2xzZTB2cHN6MTRibTJqbzJtemdqMGo3cSJ9.iPGa-jtagkbDwJYdy9o1PQ', 
+
+    }).addTo(map);
+
+    var circleMarkers = L.geoJSON(city, {
+        pointToLayer: function(feature, latlng) {
+            return L.circleMarker(latlng, {
+                radius: 3,
+                color: getColor(feature.properties.gawc),
+                fillColor: getColor(feature.properties.gawc)
+            });
+        },
+
+        onEachFeature: function(feature,layer) {
+            var nombre = feature.properties.name
+            var tier = feature.properties.gawc
+            var country = feature.properties.country
+            var reg = feature.properties.region
+
+            var popup = ("<b>"+ "City:" + "</b>" + " " + nombre + "," + " " + country +"<br>"
+                        +"<b>" + "GaWC Tier:" + "</b>" + " " + tier + "<br>"
+                        +"<b>" + "Region:" + "</b>" + " " + reg)
+                layer.bindPopup(popup)
+        }
+    }).addTo(map);
+
+    var baseLayers = {};
+    var overlayLayers = {
+        "Circle Markers": circleMarkers
+    };
+
+//SOLUTION 4 - It works!!!
+    // Create the filter controls
+    var filterControl = L.control({position: 'bottomleft'});
+    filterControl.onAdd = function(map) {
+        var div = L.DomUtil.create('div', 'info legend');
+        div.innerHTML += '<h4>Filters</h4>';
+
+        // gawc filter
+        div.innerHTML += '<b>GaWC:</b><br>';
+        ['Alpha ++', 'Alpha +', 'Alpha', 'Alpha -', 'Beta +', 'Beta', 'Beta -'].forEach(function(gawc) {
+            div.innerHTML += '<input type="checkbox" id="gawc-' + gawc + '" checked> ' + gawc + '<br>';
+        });
+
+        // region filter
+        div.innerHTML += '<b>Region:</b><br>';
+        ['North America', 'Europe and Central Asia', 'Latin America and Caribbean', 'Middle East and North Africa', 'Sub-Saharan Africa', 'South Asia', 'East Asia and Pacific'].forEach(function(region) {
+            div.innerHTML += '<input type="checkbox" id="region-' + region + '" checked> ' + region + '<br>';
+        });
+
+        div.onclick = function(e) {
+            if (e.target.type === 'checkbox') {
+                updateFilter();
+            }
+        };
+        return div;
+    };
+    filterControl.addTo(map);
+
+    var filters = {
+        gawc: ['Alpha ++', 'Alpha +', 'Alpha', 'Alpha -', 'Beta +', 'Beta', 'Beta -'],
+        region: ['North America', 'Europe and Central Asia', 'Latin America and Caribbean', 'Middle East and North Africa', 'Sub-Saharan Africa', 'South Asia', 'East Asia and Pacific']
+    };
+
+    function updateFilter() {
+        filters.gawc = ['Alpha ++', 'Alpha +', 'Alpha', 'Alpha -', 'Beta +', 'Beta', 'Beta -'].filter(function(gawc) {
+            return document.getElementById('gawc-' + gawc).checked;
+        });
+        filters.region = ['North America', 'Europe and Central Asia', 'Latin America and Caribbean', 'Middle East and North Africa', 'Sub-Saharan Africa', 'South Asia', 'East Asia and Pacific'].filter(function(region) {
+            return document.getElementById('region-' + region).checked;
+        });
+
+        circleMarkers.clearLayers();
+        circleMarkers.addData(city.features.filter(function(feature) {
+            return filters.gawc.includes(feature.properties.gawc) && filters.region.includes(feature.properties.region);
+        }));
+    }
+
+    function getColor(gawc) {
+        if (gawc === 'Alpha ++') {
+            return '#581845';
+        } else if (gawc === 'Alpha +') {
+            return '#900C3F';
+        } else if (gawc === 'Alpha') {
+            return '#C70039';
+        } else if (gawc === 'Alpha -') {
+            return '#FF5733';
+        } else if (gawc === 'Beta +') {
+            return '#FFC300';
+        } else if (gawc === 'Beta') {
+            return '#DAF7A6';
+        } else if (gawc === 'Beta -') {
+            return '#21DC73'
+        }
+    }
+        </script>
+
+    </body>
+</html>
